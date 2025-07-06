@@ -1,6 +1,9 @@
 
 # Intro into eBPF and Rust
 
+In this post, we’ll explore how to build high-performance Linux tracing tools using eBPF and Rust. Whether you're just getting started with eBPF or curious about integrating it with modern Rust tooling, this guide will walk you through the fundamentals, tooling choices, and a working syscall tracing example.
+
+
 ## What is eBPF
     
 eBPF is a technology that allows developers to run safe, sandboxed programs in the Linux kernel. These programs can be used for networking, observability, and security, without modifying kernel source code or loading kernel modules.
@@ -8,7 +11,7 @@ eBPF is a technology that allows developers to run safe, sandboxed programs in t
 eBPF runs inside a restricted virtual machine in the kernel — somewhat like how WebAssembly (WASM) or the JVM operates in userspace — ensuring safety and control over what the program can do.
 One of the biggest advantages of eBPF is that it allows extending kernel behavior dynamically, without waiting for upstream patches or rebooting systems. Since the programs run in kernel context, they can observe and act on events with minimal overhead, making them ideal for high-performance tracing, filtering, and enforcement tasks.
 
-More detailed explanation can be found at [ebpf.io](https://ebpf.io/what-is-ebpf/).
+You can find a more in-depth explanation at [ebpf.io](https://ebpf.io/what-is-ebpf/).
 
 ## Why Rust
 
@@ -18,7 +21,7 @@ It is an excellent fit for working with eBPF for several reasons:
 
 Memory Safety: Unlike C, Rust prevents common bugs like null pointer dereferences, buffer overflows, and use-after-free — which are critical when interacting with low-level kernel interfaces.
 
-Strong Tooling: Cargo, rust-analyzer, clippy, and integration with tools like libbpf-cargo make building and testing eBPF tools a seamless experience.
+Strong Tooling: Tools like Cargo, rust-analyzer, clippy, and libbpf-cargo make building and testing eBPF applications in Rust a seamless experience.
 
 
 ## What are the ready-to-use rust libraries
@@ -68,19 +71,21 @@ Under the hood, CO-RE leverages vmlinux.h, a header file that contains all the t
 
 To generate it, you can run:
 
+```bash
 bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+```
 
-This vmlinux.h file is created from the kernel’s BTF (BPF Type Format) data and can be used in your .bpf.c programs to access kernel structures safely and portably.
+This `vmlinux.h` file is created from the kernel’s BTF (BPF Type Format) data and can be used in your `.bpf.c` programs to access kernel structures safely and portably.
 
 When the eBPF program is loaded, libbpf inspects the fields your program accesses and ensures they align correctly with the actual in-kernel data layout — even if the structure has shifted. CO-RE handles this through relocation logic at load time, making your program kernel-version aware without being hardcoded to one layout.
 
-If you're interested in a deep technical dive, I highly recommend Andrii Nakryiko’s blog post on CO-RE.
+If you're interested in a deep technical dive, I highly recommend Andrii Nakryiko’s blog post on [CO-RE](https://nakryiko.com/posts/bpf-portability-and-co-re/).
 
 ### Why I Chose libbpf-rs
 
 I initially explored aya-rs, a pure-Rust eBPF toolchain that allows writing both userspace and kernel-space components in Rust. While Aya is ergonomic and modern, I encountered issues when using certain eBPF helper functions — the verifier would reject the program.
 
-After some investigation and community input (see this issue), I learned that these problems were caused by CO-RE incompatibilities with the Rust compiler (rustc). Since CO-RE support in aya is still maturing and relies on experimental LLVM features for Rust, I decided to switch.
+After some investigation and community input ([gh issue](https://github.com/aya-rs/aya/issues/349)) I learned that these problems were caused by CO-RE incompatibilities with the Rust compiler (rustc). Since CO-RE support in aya is still maturing and relies on experimental LLVM features for Rust, I decided to switch.
 
 That’s when I discovered libbpf-rs, a safe and idiomatic Rust wrapper around the stable and battle-tested libbpf C library.
 
@@ -99,19 +104,66 @@ The userspace logic remains in Rust, giving me the safety, ergonomics, and moder
 
 ![ebpf](./ebpf.svg)
 
+Here’s a high-level look at the lifecycle of an eBPF program integrated with a Rust userspace application:
 
-## Example
+* Write an eBPF program alongside the userspace Rust code.
 
-Lets write a simple Rust + Ebpf program to trace all the Syscalls invoked on the machine.
+* Compile the source to generate eBPF bytecode and the Rust binary.
+
+* Run the userspace binary.
+
+* The userspace binary attempts to load the eBPF bytecode into the kernel.
+
+* The eBPF verifier (more on this in future posts) checks that the eBPF program is safe to run in the kernel.
+
+* If verification fails, the program is rejected. Otherwise, the eBPF bytecode is JIT-compiled into machine instructions and successfully loaded into the kernel.
+
+* Once loaded, the userspace binary attaches the eBPF program to relevant kernel hook points.
+
+* Communication between the Rust userspace and kernel space is handled using eBPF Maps.
+
+We'll explore these primitives in depth with hands-on examples in upcoming posts.
+
+
+## Example: Tracing Syscalls with eBPF and Rust
+
+Let’s walk through a simple example that traces all syscalls invoked on a Linux system.
+
+Below is a snapshot of the project structure. You can also explore and run the full code from the [GitHub repo](https://github.com/maheshrayas/blogs/tree/main/ebpf/01-intro-ebpf-rust/code/syscall-tracer).
+Make sure your system meets the [eBPF prerequisites](https://docs.kernel.org/bpf/bpf_devel_QA.html#q-what-s-the-minimal-kernel-version-that-supports-bpf) before running.
+
+
+```bash
+└── syscall-tracer
+    ├── build.rs   # Builds the C code and generates eBPF bytecode & Rust bindings
+    ├── Cargo.lock
+    ├── Cargo.toml
+    ├── Cross.toml # Cross-compilation configuration
+    ├── README.md
+    └── src
+        ├── bpf
+        │   ├── syscall.bpf.c  # eBPF program
+        │   ├── syscall.skel.rs # Auto-generated bindings by libbpf-cargo
+        │   └── vmlinux.h # CO-RE header for kernel type definitions
+        ├── lib.rs
+        ├── log.rs
+        └── main.rs   # Rust userspace: loads, attaches eBPF and handles kernel events
+
+```
+
+This is how the output might look when tracing syscalls:
+
+![syscall](./syscall.png)
 
 
 
 
+## What’s Next?
 
+This post is just the beginning. There’s a lot more to explore with eBPF and Rust — from powerful capabilities to real-world applications.
 
+I’ll be sharing more advanced and interesting examples in future posts. Stay tuned — you won’t want to miss what’s coming next!
 
-## Future blogs
+## Conclusion
 
-I want to publish lot of blogs related to this topics and have the content ready and would be publishing the more advanced use case, please subscribe.
-
-
+Whether you're building observability tools or experimenting with kernel internals, eBPF + Rust offers a powerful, safe foundation. The possibilities ahead are exciting — and we're just getting started.
