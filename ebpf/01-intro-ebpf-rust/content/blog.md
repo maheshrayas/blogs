@@ -102,7 +102,7 @@ The userspace logic remains in Rust, giving me the safety, ergonomics, and moder
 
 ## eBPF + Rust: Architecture Diagram
 
-![ebpf](./ebpf.svg)
+![ebpf](../images/ebpf.svg)
 
 Here’s a high-level look at the lifecycle of an eBPF program integrated with a Rust userspace application:
 
@@ -153,7 +153,7 @@ Make sure your system meets the [eBPF prerequisites](https://docs.kernel.org/bpf
 
 This is how the output might look when tracing syscalls:
 
-![syscall](./syscall.png)
+![syscall](../images/syscall.png)
 
 
 
