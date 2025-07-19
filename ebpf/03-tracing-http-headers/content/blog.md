@@ -74,7 +74,7 @@ Symbols marked with `T` indicate global (exported) kernel text symbols, i.e., fu
 
 ## Let's Dive into the Example
 
-Working example: [TODO: Add GitHub or Repo Link]
+Working example: https://github.com/maheshrayas/blogs/tree/main/ebpf/03-tracing-http-headers/code/trace-http1-headers
 
 This example traces HTTP/1.1 headers of a server using eBPF. Here's the setup:
 
