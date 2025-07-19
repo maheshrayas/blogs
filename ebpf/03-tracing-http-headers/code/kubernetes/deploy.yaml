@@ -1,0 +1,109 @@
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-editor-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-editor
+  namespace: demo  # Change this if needed
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-editor-binding
+  namespace: demo 
+subjects:
+  - kind: ServiceAccount
+    name: pod-editor
+    namespace: demo  # Must match the ServiceAccount namespace
+roleRef:
+  kind: ClusterRole
+  name: pod-editor-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http-tracer
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: http-tracer
+  template:
+    metadata:
+      labels:
+        app: http-tracer
+    spec:
+      hostPID: true # VERY IMPORTANT for accessing /proc/<host_pid>/exe
+      hostIPC: true # Might be needed for some inter-process communication
+      serviceAccountName: pod-editor
+      containers:
+        - name: http-tracer
+          imagePullPolicy: IfNotPresent
+          image: maheshrayas/http-tracer:2.5
+          env:
+          - name: RUST_LOG
+            value: INFO
+          - name: CURRENT_NODE
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          securityContext:
+            capabilities:
+              add: ["SYS_ADMIN"]
+          volumeMounts:
+          - mountPath: /var/lib
+            name: host-var-lib
+          - mountPath: /sys/kernel/debug
+            name: debugfs
+            readOnly: false
+          - name: bpffs
+            mountPath: /sys/fs/bpf
+            readOnly: true
+          - name: run-containerd-bundle
+            mountPath: /run/containerd/io.containerd.runtime.v2.task
+            readOnly: true
+          - name: containerd-sock
+            mountPath: /run/containerd/containerd.sock
+            readOnly: true
+          - mountPath: /sys/kernel/tracing
+            name: tracefs
+            readOnly: true
+          - mountPath: /proc
+            name: hostproc
+      volumes:
+      - name: host-var-lib
+        hostPath:
+          path: /var/lib
+          type: Directory
+      - name: bpffs
+        hostPath:
+          path: /sys/fs/bpf
+          type: Directory
+      - name: run-containerd-bundle
+        hostPath:
+          path: /run/containerd/io.containerd.runtime.v2.task
+      - name: containerd-sock
+        hostPath:
+          path: /run/containerd/containerd.sock
+      - hostPath:
+          path: /proc
+          type: Directory
+        name: hostproc
+      - hostPath:
+          path: /sys/kernel/debug
+        name: debugfs
+      - hostPath:
+          path: /sys/kernel/tracing
+          type: Directory
+        name: tracefs
+            
