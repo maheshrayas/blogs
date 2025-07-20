@@ -1,22 +1,29 @@
-use libbpf_rs::{MapCore, PerfBufferBuilder};
-use libbpf_rs::skel::{OpenSkel, Skel, SkelBuilder};
-use procfs::process::Process;
-use std::env;
-use std::ffi::OsString;
-use std::{error::Error, mem::MaybeUninit};
-use tokio::time::Duration;
-use libbpf_rs::MapFlags;
+use std::{
+    env,
+    error::Error,
+    mem::MaybeUninit,
+};
 
-use trace_http1_headers::http_probe::*;
-use trace_http1_headers::log::init_logger;
+use tokio::time::Duration;
 use tracing::{error, info, warn};
+use libbpf_rs::{
+    MapCore,
+    MapFlags,
+    PerfBufferBuilder,
+};
+use libbpf_rs::skel::{OpenSkel, Skel, SkelBuilder};
+
+use trace_http1_headers::{
+    http_probe::*,
+    log::init_logger,
+};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct HttpEventData {
     pid: u32,
     fd: i32,
-    data_len: u32, // Track actual data length
+    data_len: u32,
     data: [u8; 256],
 }
 
@@ -27,8 +34,6 @@ fn handle_event(_cpu: i32, data: &[u8]) {
     let data_slice = &event.data[..event.data_len as usize];
     if let Ok(http_data) = std::str::from_utf8(data_slice) {
         info!("HTTP Event - PID: {}, FD: {}", event.pid, event.fd);
-
-        // Parse HTTP headers
         parse_http_headers(http_data);
     } else {
         warn!("Non-UTF8 data received from PID {}", event.pid);

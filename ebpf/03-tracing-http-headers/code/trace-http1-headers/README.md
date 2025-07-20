@@ -28,3 +28,7 @@ sudo ./target/x86_64-unknown-linux-gnu/release/trace-http1-headers <pid>
 #Invoke the http from another terminal
 curl http://localhost:3000
 ```
+
+## Output
+
+![demo](../../images/demo.png)

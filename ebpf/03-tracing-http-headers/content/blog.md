@@ -215,4 +215,3 @@ In the next part of this series, we'll explore how to parse gRPC headers from a 
 Later, we’ll bring everything together to build a Kubernetes-native observability tool that can trace HTTP headers — all without any modification or instrumentation to the applications themselves.
 
 Stay tuned — it gets even more exciting from here!
-
