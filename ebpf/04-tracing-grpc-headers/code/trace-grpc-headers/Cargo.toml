@@ -1,0 +1,29 @@
+[package]
+name = "trace-grpc-headers"
+version = "0.1.0"
+edition = "2024"
+
+
+[build-dependencies]
+libbpf-cargo = "0.25.0"
+vmlinux = { version = "0.0", git = "https://github.com/libbpf/vmlinux.h.git", rev = "83a228cf37fc65f2d14e4896a04922b5ee531a94" }
+
+
+[dependencies]
+libbpf-rs = "0.25.0"
+tokio = { version = "1.45", features = ["macros", "rt-multi-thread", "fs", "time"] }
+tracing-subscriber = { version = "0.3.16", features = ["json", "env-filter", "local-time"] }
+tracing = "0.1.37"
+time = { version = "0.3", features = ["formatting", "local-offset", "macros"]}
+clap = { version = "4.5.41", features = ["derive"]}
+object = "0.37.1"
+anyhow = "1.0.98"
+
+
+[[bin]]
+name = "go"
+path = "src/parse_go.rs"
+
+[[bin]]
+name = "grpc"
+path = "src/parse_grpc_headers.rs"
