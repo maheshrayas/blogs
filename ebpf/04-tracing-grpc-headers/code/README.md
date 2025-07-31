@@ -18,7 +18,7 @@ A toolkit for tracing Go and gRPC function arguments using eBPF.
 ### 1. Build and Run the Sample Go Binary
 
 ```bash
-cd ./blogs/ebpf/04-tracing-grpc-headers/code/sample_go
+cd sample_go
 ./build.sh
 ```
 
@@ -59,7 +59,7 @@ sudo cat /sys/kernel/tracing/trace_pipe
 ### 1. Build and Run the Sample gRPC Server
 
 ```bash
-cd ./blogs/ebpf/04-tracing-grpc-headers/code/sample_grpc
+cd sample_grpc
 ./build.sh
 ```
 
@@ -68,7 +68,7 @@ cd ./blogs/ebpf/04-tracing-grpc-headers/code/sample_grpc
 Open another terminal:
 
 ```bash
-cd ./blogs/ebpf/04-tracing-grpc-headers/code/trace-grpc-headers
+cd trace-grpc-headers
 cross build --release --target x86_64-unknown-linux-gnu --bin grpc
 sudo ./target/x86_64-unknown-linux-gnu/release/grpc \
   --pid <PID_OF_GRPC_SERVER> \
@@ -89,7 +89,7 @@ sudo cat /sys/kernel/tracing/trace_pipe
 Open another terminal and execute:
 
 ```bash
-cd ./blogs/ebpf/04-tracing-grpc-headers/code/sample_grpc
+cd sample_grpc
 
 grpcurl -plaintext \
   -import-path ./proto \
